@@ -1,107 +1,240 @@
-mv /home/ubuntu/extend_language/samsum_dataset.py /home/ubuntu/.local/lib/python3.10/site-packages/llama_cookbook/datasets/
+# Yanomami Language Extension for Llama 3.1
 
-Install instance: scp -r /Users/renanserrano/CascadeProjects/Yanomami/finetune-nllb/ ssh ubuntu@129.146.102.17:~/
+## Project Overview
 
-pip instal -r requirements.txt
-sudo apt-get update
-sudo apt-get install -y build-essential python3-dev
+This project aims to extend the Meta Llama 3.1 model to support the Yanomami language, an indigenous language spoken by approximately 35,000 people in the Amazon rainforest regions of Brazil and Venezuela. By fine-tuning Llama 3.1 on Yanomami language data, we create a multilingual model capable of understanding and generating text in both Yanomami and English.
 
-```
-python3 prepare_data.py --dataset_path ./dataset/validation.jsonl --save_path ./data
-````
-```
-python train_tokenizer.py --input_file ./data/yan.txt --save_path ./yanomami_tokenizer --vocab_size 8000
-```
-
-```
-python extend_tokenizer_v2.py --base_model_name meta-llama/Meta-Llama-3.1-8B --new_tokenizer_path ./yanomami_tokenizer --extended_tokenizer_save_path ./extended_tokenizer --hf_token YOUR_HF_TOKEN
-```
-
-# Fix the tokenizer (to address 'OrderedVocab contains holes' warning)
-```
-python fix_tokenizer.py --tokenizer_path ./extended_tokenizer --output_path ./fixed_tokenizer
-```
+1. We trained a model Llama 3.1 8B INT8 using 8xA100 GPUs on Lambdalabs
+2. We created a chat interface for the model using assistant-ui https://github.com/renantrendt/yanomami-chat
+3. We are hosting the model on Lambdalabs for inference
+4. We are adding Qdrant to the model for knowledge retrieval
+5. We plan to create an app that runs offline because on the forest there is no internet connection
 
 
-```
-python prepare_training_data.py --input_file ./dataset/train.jsonl --output_dir ./formatted_data --phase 1
+The project follows the Meta Llama cookbook approach for extending language models to new languages, implementing a two-phase training process:
 
-```
-python prepare_training_data.py --input_file ./dataset/train.jsonl --output_dir ./formatted_data --phase 2
-```
-```
-git clone https://huggingface.co/datasets/Samsung/samsum
+1. **Phase 1**: Learning to translate paragraphs (translated text as context, generate original text)
+2. **Phase 2**: Bilingual next token prediction (alternating sentences in both languages)
 
-export HF_DATASETS_TRUST_REMOTE_CODE=True
+## Installation Instructions
 
-python extend_language/samsum/samsum.py
+### Prerequisites
 
-python /home/ubuntu/.local/lib/python3.10/site-packages/llama_cookbook/datasets/samsum_dataset.py
-````
+- Python 3.10+
+- CUDA-compatible GPU (training was performed on 8xA100 GPUs)
+- Hugging Face account with access to Llama 3.1 models
 
+### Setup
 
-````
-# Quick test with a small sample
-python finetune_phase1.py --max_samples 20 \
-    --model_name meta-llama/Meta-Llama-3.1-8B \
-    --tokenizer_path ./fixed_tokenizer \
-    --train_file ./formatted_data/phase1_data.txt \
-    --output_dir ./llama-yanomami-phase1 \
-    --bf16 \
-    --use_4bit \
-    --num_train_epochs 3 \
-    --per_device_train_batch_size 4 \
-    --gradient_accumulation_steps 4 \
-    --learning_rate 2e-4 \
-    --lora_r 128 \
-    --lora_alpha 64 \
-    --deepspeed ds_config_zero2.json \
+1. Clone this repository:
+   ```bash
+   git clone https://github.com/yourusername/llama-yanomami-extension.git
+   cd llama-yanomami-extension
+   ```
+
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   sudo apt-get update
+   sudo apt-get install -y build-essential python3-dev
+   ```
+
+3. Set up environment variables:
+   ```bash
+   export HF_DATASETS_TRUST_REMOTE_CODE=True
+   ```
+
+4. Move necessary files to the correct locations:
+   ```bash
+   # If using llama_cookbook
+   mv extend_language/samsum_dataset.py ~/.local/lib/python3.10/site-packages/llama_cookbook/datasets/
+   ```
+
+## Usage Guide
+
+### Data Preparation
+
+1. Prepare your dataset:
+   ```bash
+   python prepare_data.py --dataset_path ./dataset/validation.jsonl --save_path ./data
+   ```
+   
+2. (Optional) Set up SamSum dataset for testing and benchmarking:
+   ```bash
+   # Clone the SamSum dataset repository
+   git clone https://huggingface.co/datasets/Samsung/samsum
+   
+   # Set environment variable for remote code execution
+   export HF_DATASETS_TRUST_REMOTE_CODE=True
+   
+   # Process the SamSum dataset
+   python extend_language/samsum/samsum.py
+   
+   # Run the SamSum dataset preparation script
+   python /home/ubuntu/.local/lib/python3.10/site-packages/llama_cookbook/datasets/samsum_dataset.py
+   ```
+
+3. Train a tokenizer for Yanomami:
+   ```bash
+   python train_tokenizer.py --input_file ./data/yan.txt --save_path ./yanomami_tokenizer --vocab_size 8000
+   ```
+
+4. Extend the base Llama tokenizer with Yanomami tokens:
+   ```bash
+   python extend_tokenizer_v2.py \ 
+       --base_model_name meta-llama/Meta-Llama-3.1-8B \ 
+       --new_tokenizer_path ./yanomami_tokenizer \ 
+       --extended_tokenizer_save_path ./extended_tokenizer \ 
+       --hf_token YOUR_HF_TOKEN
+   ```
+
+5. Fix the tokenizer (to address 'OrderedVocab contains holes' warning):
+   ```bash
+   python fix_tokenizer.py --tokenizer_path ./extended_tokenizer --output_path ./fixed_tokenizer
+   ```
+
+6. Prepare training data for both phases:
+   ```bash
+   # Phase 1: Translation format
+   python prepare_training_data.py --input_file ./dataset/train.jsonl --output_dir ./formatted_data --phase 1
+   
+   # Phase 2: Bilingual next token prediction format
+   python prepare_training_data.py --input_file ./dataset/train.jsonl --output_dir ./formatted_data --phase 2
+   ```
+
+### Training
+
+#### Phase 1: Translation Learning
+
+1. Quick test with a small sample:
+   ```bash
+   python finetune_phase1.py --max_samples 20 \ 
+       --model_name meta-llama/Meta-Llama-3.1-8B \ 
+       --tokenizer_path ./fixed_tokenizer \ 
+       --train_file ./formatted_data/phase1_data.txt \ 
+       --output_dir ./llama-yanomami-phase1 \ 
+       --bf16 \ 
+       --use_4bit \ 
+       --num_train_epochs 3 \ 
+       --per_device_train_batch_size 4 \ 
+       --gradient_accumulation_steps 4 \ 
+       --learning_rate 2e-4 \ 
+       --lora_r 128 \ 
+       --lora_alpha 64 \ 
+       --deepspeed ds_config_zero2.json \ 
+       --hf_token YOUR_HF_TOKEN
+   ```
+
+2. Full training with all samples:
+   ```bash
+   python finetune_phase1.py \ 
+       --model_name meta-llama/Meta-Llama-3.1-8B \ 
+       --tokenizer_path ./fixed_tokenizer \ 
+       --train_file ./formatted_data/phase1_data.txt \ 
+       --output_dir ./llama-yanomami-phase1 \ 
+       --bf16 \ 
+       --use_4bit \ 
+       --num_train_epochs 3 \ 
+       --per_device_train_batch_size 4 \ 
+       --gradient_accumulation_steps 4 \ 
+       --learning_rate 2e-4 \ 
+       --max_seq_length 4096 \ 
+       --lora_r 128 \ 
+       --lora_alpha 64 \ 
+       --deepspeed ds_config_zero2.json \ 
+       --hf_token YOUR_HF_TOKEN
+   ```
+
+#### Phase 2: Bilingual Next Token Prediction
+
+```bash
+python finetune_phase2.py \ 
+    --model_name ./llama-yanomami-phase1 \ 
+    --tokenizer_path ./extended_tokenizer \ 
+    --train_file ./formatted_data/phase2_data.txt \ 
+    --output_dir ./llama-yanomami-phase2 \ 
+    --bf16 \ 
+    --use_4bit \ 
+    --num_train_epochs 3 \ 
+    --per_device_train_batch_size 4 \ 
+    --gradient_accumulation_steps 4 \ 
+    --learning_rate 2e-4 \ 
+    --max_seq_length 4096 \ 
+    --lora_r 128 \ 
+    --lora_alpha 64 \ 
+    --deepspeed ds_config_zero2.json \ 
     --hf_token YOUR_HF_TOKEN
 ```
 
-```
-# Full training with all samples
-python finetune_phase1.py \
-    --model_name meta-llama/Meta-Llama-3.1-8B \
-    --tokenizer_path ./fixed_tokenizer \
-    --train_file ./formatted_data/phase1_data.txt \
-    --output_dir ./llama-yanomami-phase1 \
-    --bf16 \
-    --use_4bit \
-    --num_train_epochs 3 \
-    --per_device_train_batch_size 4 \
-    --gradient_accumulation_steps 4 \
-    --learning_rate 2e-4 \
-    --max_seq_length 4096 \
-    --lora_r 128 \
-    --lora_alpha 64 \
-    --deepspeed ds_config_zero2.json \
-    --hf_token YOUR_HF_TOKEN
+### Using the Unified Script
 
-````
+Alternatively, you can use our unified script that follows the Meta Llama cookbook approach:
 
-````
-python finetune_phase2.py \
-    --model_name ./llama-yanomami-phase1 \
-    --tokenizer_path ./extended_tokenizer \
-    --train_file ./formatted_data/phase2_data.txt \
-    --output_dir ./llama-yanomami-phase2 \
-    --bf16 \
-    --use_4bit \
-    --num_train_epochs 3 \
-    --per_device_train_batch_size 4 \
-    --gradient_accumulation_steps 4 \
-    --learning_rate 2e-4 \
-    --max_seq_length 4096 \
-    --lora_r 128 \
-    --lora_alpha 64 \
-    --deepspeed ds_config_zero2.json \
-    --hf_token YOUR_HF_TOKEN
+```bash
+python yanomami_finetune.py --phase=1 --use_peft
 ```
 
+## Model Implementation Details
 
-1. We have the @Llama-Guard-3-8B-int8 model downloaded in the repository.
-2. use the tool to analyze those 4 pages: https://github.com/meta-llama/llama-cookbook/tree/main/getting-started/finetuning & https://github.com/huggingface/huggingface-llama-recipes/blob/main/fine_tune/peft_finetuning.py & https://github.com/meta-llama/llama-cookbook/blob/main/end-to-end-use-cases/multilingual/README.md & https://github.com/meta-llama/llama-cookbook/blob/main/src/llama_cookbook/finetuning.py
-3. The objective is to extend Llama to a new language called Yanomami. 
-4. We will build a training script, you need to follow the insctructions from the links that I sent to you, mainly from the multilingual.
-5. We will use 8xA100 GPUS
+This project implements the Meta Llama cookbook approach for extending language models to new languages. Key components include:
+
+### Data Format
+
+- **Phase 1**: `{"text": "<translated_text>\n\n<english_text>"}`
+- **Phase 2**: `{"text": "<sentence1_en> <sentence1_yanomami> <sentence2_en> ..."}`
+
+### Training Parameters
+
+Following the cookbook recommendations:
+
+- Learning rate: 2e-4
+- LoRA rank: 128
+- LoRA alpha: 64
+- LoRA target modules: q_proj, v_proj, k_proj, o_proj, gate_proj, down_proj, up_proj
+- Context length: 4096
+- Training hardware: 8xA100 GPUs
+- Mixed precision: BF16
+- Quantization: 4-bit (QLoRA)
+- DeepSpeed Zero-2 optimization
+
+### Memory Optimization
+
+The training process uses several memory optimization techniques:
+
+- Parameter-Efficient Fine-Tuning (PEFT) with LoRA
+- 4-bit quantization (QLoRA)
+- DeepSpeed Zero-2 for distributed training
+- Gradient accumulation
+- Mixed precision training
+
+## Ethical Considerations and Limitations
+
+### Ethical Considerations
+
+1. **Cultural Preservation**: This project contributes to the digital preservation of the Yanomami language, supporting linguistic diversity and cultural heritage.
+
+2. **Informed Consent**: Ensure that any Yanomami language data used has been collected with proper informed consent from native speakers and communities.
+
+3. **Representation**: The model should accurately represent Yanomami language and culture without perpetuating stereotypes or misrepresentations.
+
+4. **Access**: Consider how to make the resulting model accessible to Yanomami communities who could benefit from it.
+
+### Limitations
+
+1. **Data Scarcity**: Limited availability of high-quality Yanomami language data may affect model performance.
+
+2. **Cultural Nuance**: The model may not capture all cultural nuances and contextual meanings specific to Yanomami culture.
+
+3. **Dialect Variation**: The Yanomami language has several dialects, and the model may not represent all of them equally.
+
+4. **Technical Requirements**: The computational resources required for inference may limit accessibility in remote areas where many Yanomami communities are located.
+
+5. **Evaluation Challenges**: Limited availability of native Yanomami speakers for model evaluation may affect quality assessment.
+
+## Acknowledgments
+
+This project follows the approach outlined in the [Meta Llama Cookbook](https://github.com/meta-llama/llama-cookbook/blob/main/end-to-end-use-cases/multilingual/README.md) for extending language models to new languages.
+
+## License
+
+This project is licensed under [LICENSE TYPE] - see the LICENSE file for details.
