@@ -1,6 +1,7 @@
 # Yanomami Language Extension for Llama 3.1
 
 ## Test the model
+
 https://yanomami.bernardoserrano.com
 
 ## Project Overview
@@ -249,6 +250,44 @@ Alternatively, you can use our unified script that follows the Meta Llama cookbo
 ```bash
 python yanomami_finetune.py --phase=1 --use_peft
 ```
+
+## Training Results
+
+### Interpreting Training Output
+
+During and after training, you'll see various metrics that can help you understand how the training is progressing:
+
+```
+{'train_runtime': 209.4685, 'train_samples_per_second': 0.559, 'train_steps_per_second': 0.559, 'train_loss': 8.29744609604534, 'epoch': 3.0}
+```
+
+- **train_runtime**: Total training time in seconds
+- **train_samples_per_second**: How many training samples are processed per second
+- **train_steps_per_second**: How many optimization steps are performed per second
+- **train_loss**: The average training loss (lower is better, but the absolute value depends on the task)
+- **epoch**: Number of complete passes through the training dataset
+
+### Expected Warnings
+
+You may see warnings like the following during training:
+
+```
+/home/ubuntu/.local/lib/python3.10/site-packages/peft/utils/save_and_load.py:260: UserWarning: Setting `save_embedding_layers` to `True` as the embedding layer has been resized during finetuning.
+```
+
+This warning is normal and expected when using LoRA with a model that has had its embedding layer resized (which happens when extending the tokenizer for a new language).
+
+### Model Saving
+
+After training completes, the model is saved to the specified output directory (e.g., `./output/phase1` for Phase 1 training). This directory contains:
+
+- **adapter_config.json**: Configuration for the LoRA adapter
+- **adapter_model.bin**: The trained LoRA weights
+- **special_tokens_map.json**: Mapping of special tokens
+- **tokenizer_config.json**: Tokenizer configuration
+- **tokenizer.json**: The tokenizer data
+
+These files can be loaded using the Hugging Face Transformers library for inference or further training.
 
 ## Model Implementation Details
 
