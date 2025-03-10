@@ -18,6 +18,38 @@ The project follows the Meta Llama cookbook approach for extending language mode
 1. **Phase 1**: Learning to translate paragraphs (translated text as context, generate original text)
 2. **Phase 2**: Bilingual next token prediction (alternating sentences in both languages)
 
+### Phase 1: Translation Learning
+
+**Objective**: Teach the model to understand the relationship between the new language (Yanomami) and English.
+
+**Data Format**: `{"text": "<translated_text>\n\n<english_text>"}`
+- The model is given translated text as context and learns to generate the original English text.
+- Example: Yanomami text followed by two newlines, then the corresponding English text.
+
+**Learning Focus**: 
+- Basic vocabulary and grammar of the new language
+- Mapping between concepts in both languages
+- Understanding the structure of the new language
+
+**File Used**: `formatted_data/phase1_data.txt`
+
+### Phase 2: Bilingual Next Token Prediction
+
+**Objective**: Improve the model's ability to seamlessly switch between languages and generate coherent text in both.
+
+**Data Format**: `{"text": "<sentence1_en> <sentence1_yanomami> <sentence2_en> ..."}`
+- Alternating sentences in both languages
+- The model learns to predict the next token regardless of which language it's in
+
+**Learning Focus**:
+- Code-switching (moving between languages)
+- Maintaining context across language boundaries
+- Generating coherent text in both languages
+
+**File Used**: `formatted_data/phase2_data.txt`
+
+This two-phase approach is designed to gradually build the model's capabilities in the new language, first establishing basic understanding and translation abilities, then developing more sophisticated bilingual capabilities.
+
 ## Installation Instructions
 
 ### Prerequisites
