@@ -1,8 +1,9 @@
 # Yanomami Language Extension for Llama 3.1
 
-## Project Overview
+## Test the model
+https://yanomami.bernardoserrano.com
 
-**You can test the model at: https://yanomami.bernardoserrano.com**
+## Project Overview
 
 This project aims to extend the Meta Llama 3.1 model to support the Yanomami language, an indigenous language spoken by approximately 35,000 people in the Amazon rainforest regions of Brazil and Venezuela. By fine-tuning Llama 3.1 on Yanomami language data, we create a multilingual model capable of understanding and generating text in both Yanomami and English.
 
