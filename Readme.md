@@ -88,10 +88,51 @@ This two-phase approach is designed to gradually build the model's capabilities 
 
 ### Data Preparation
 
-1. Prepare your dataset:
+#### Initial Data Processing
+
+The data preparation process involves several steps to transform raw Yanomami-English data into the formats required for the two-phase training approach:
+
+1. **Raw Data Extraction**: The initial scripts extract Yanomami words/phrases and their English translations from structured data with specific tags:
+   - `<WORD>...</WORD>`: Contains Yanomami words or phrases
+   - `<DEFINITION>...</DEFINITION>`: Contains English translations
+   - `<EXAMPLE_YANOMAMI>...</EXAMPLE_YANOMAMI>` and `<EXAMPLE_TRANSLATION>...</EXAMPLE_TRANSLATION>`: Contain example sentences
+
+2. **Phase-Specific Formatting**:
+   - **Phase 1**: Creates data in the format `{Yanomami word/phrase} = {English translation}` and saves to `phase1_data.txt`
+   - **Phase 2**: Creates bilingual text with alternating sentences between English and Yanomami and saves to `phase2_data.txt`
+
+3. **Data Processing Commands**:
    ```bash
+   # Extract and process raw text for tokenizer training
    python prepare_data.py --dataset_path ./dataset/validation.jsonl --save_path ./data
+   
+   # Create formatted data for Phase 1
+   python prepare_training_data.py --input_file ./dataset/train.jsonl --output_dir ./formatted_data --phase 1
+   
+   # Create formatted data for Phase 2
+   python prepare_training_data.py --input_file ./dataset/train.jsonl --output_dir ./formatted_data --phase 2
    ```
+
+This preparation process ensures the data is properly formatted according to the Meta Llama cookbook approach for extending language models to new languages.
+
+#### Treatment of Diacritical Marks
+
+The Yanomami language contains various diacritical marks that require special handling during tokenization and processing:
+
+1. **Unicode Normalization**: The tokenizer applies the `nmt_nfkc_cf` normalization rule (Normalization Form KC with Case Folding) which:
+   - Ensures consistent representation of characters with diacritical marks
+   - Decomposes and then recomposes characters in a canonical form
+   - Helps maintain consistency across different text sources
+
+2. **Character Coverage**: The tokenizer is trained with a high character coverage value (default: 1.0) to ensure all special characters and diacritical marks in Yanomami are properly recognized.
+
+3. **UTF-8 Encoding**: All text files are processed using UTF-8 encoding to properly handle the full range of Unicode characters present in Yanomami text.
+
+4. **NFC Encoding**: When testing the tokenizer, text is read using NFC (Normalization Form C) encoding to ensure proper handling of combining diacritical marks.
+
+This careful handling of diacritical marks is essential for properly representing the Yanomami language, which contains unique phonetic features that must be preserved during the tokenization and training process.
+
+#### Additional Data Processing
    
 2. (Optional) Set up SamSum dataset for testing and benchmarking:
    ```bash
